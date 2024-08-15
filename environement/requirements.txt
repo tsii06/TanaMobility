@@ -1,0 +1,8 @@
+dash
+dash-bootstrap-components
+pandas
+plotly
+openpyxl
+sqlalchemy
+psycopg2
+geopandas

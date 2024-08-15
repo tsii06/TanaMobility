@@ -1,0 +1,46 @@
+/* assets/style.css */
+.navbar-brand-custom {
+    color: #28a745; /* Couleur verte */
+    font-weight: bold; /* Texte en gras */
+}
+
+.nav-link-custom {
+    color: #28a745; /* Couleur verte */
+    font-weight: bold; /* Texte en gras */
+    margin: 0 10px;
+}
+.navbar-custom {
+    border-bottom: 3px solid #28a745; /* Bordure inférieure verte */
+}
+
+.nav-link-custom:hover {
+    color: white; /* Couleur du texte au survol */
+    background-color: #009345ba;; /* Fond vert au survol */
+}
+
+.nav-link-custom.active {
+    color: white; /* Couleur du texte quand actif */
+    background-color: #009345ba;; /* Fond vert au survol */
+}
+/*div du css*/
+.custom-div {
+    background-color: rgba(0, 147, 69, 0.43);
+    padding: 15px;
+    /*border-radius: 5px;*/
+    margin-bottom: 20px;
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    color: #009345;
+}
+.custom-div:first-child {
+    margin-top: 0;
+}
+body {
+    height: 100vh;
+}
+*{
+    font-size: 0.95rem;
+    font-family: "Arial";
+}
+
