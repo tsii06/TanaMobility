@@ -49,6 +49,13 @@ TanaMobility est un projet destiné à modéliser et visualiser les flux de tran
 - **Psycopg2** : Adaptateur PostgreSQL pour Python, utilisé pour interagir avec la base de données PostgreSQL.
 - **GeoPandas** : Extension de Pandas pour la manipulation de données géospatiales.
 
+## Configuration de la Base de Données
+
+Ce projet utilise une base de données PostgreSQL pour stocker et gérer les données de trafic et de mobilité. Suivez les étapes ci-dessous pour configurer la base de données :
+- Copier le script dans le fichier sql: **base.sql**
+- Configurer les paramètres de connexion dans le fichier **data/database.py** en changeant le mot de passe
+
+
 ## Installation
 
 Clonez ce repository et installez les dépendances nécessaires :
@@ -57,13 +64,14 @@ Clonez ce repository et installez les dépendances nécessaires :
 git clone https://github.com/tsii06/TanaMobility.git
 cd TanaMobility
 pip install -r environement/requirements.txt
+```
 
-## Configuration de la Base de Données
-
-Ce projet utilise une base de données PostgreSQL pour stocker et gérer les données de trafic et de mobilité. Suivez les étapes ci-dessous pour configurer la base de données :
-- Copier le script dans le fichier sql: **base.sql**
-
-- Configurer les paramètres de connexion dans le fichier **data/database.py**
-- Gunicorn
-- PostgreSQL
-
+## Utilisation
+-Pour lancer l'application en local :
+```bash
+python app.py
+```
+-Pour déployer l'application sur un serveur WSGI :
+```bash
+python wsgi.py
+```
