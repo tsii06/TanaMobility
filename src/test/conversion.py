@@ -1,81 +1,100 @@
-import dash
-from dash import html, dcc
+from dash import dcc, html, Dash
+import geopandas as gpd
 import plotly.graph_objs as go
 
-app = dash.Dash(__name__)
+# Charger le fichier GeoJSON
+gdf = gpd.read_file('Antananarivo_voiries_primaires-secondaires-tertiaire.geojson')
 
-# Exemple de données pour les flèches
-data = [
-    {'zone': 'Zone 1', 'latitude': 34.0522, 'longitude': -118.2437, 'voiture': 10, 'moto': 5, 'bus': 2},
-    {'zone': 'Zone 2', 'latitude': 40.7128, 'longitude': -74.0060, 'voiture': 20, 'moto': 15, 'bus': 5},
-    {'zone': 'Zone 3', 'latitude': 51.5074, 'longitude': -0.1276, 'voiture': 30, 'moto': 10, 'bus': 8}
-]
+# Filtrer les routes par type
+gdf_primary = gdf[gdf['highway'] == 'primary']
+gdf_secondary = gdf[gdf['highway'] == 'secondary']
+gdf_tertiary = gdf[gdf['highway'] == 'tertiary']
 
-# Préparer les traces pour les points représentant les diagrammes circulaires
-circle_traces = []
-for row in data:
-    pie_chart = f"""
-        <div style="position: absolute; left: 0; top: 0;">
-            <svg width="50" height="50">
-                <circle cx="25" cy="25" r="20" fill="green" stroke="none" stroke-width="0" />
-                <text x="25" y="25" text-anchor="middle" fill="white" font-size="20" font-family="Arial" dy=".3em">{row['voiture']}</text>
-            </svg>
-        </div>
-    """
-    circle_traces.append(go.Scattermapbox(
-        lat=[row['latitude']],
-        lon=[row['longitude']],
-        mode='markers+text',
-        marker=dict(size=10, color='rgba(0,0,0,0)'),
-        text=[pie_chart],
-        hoverinfo='text',
-        hovertext=f"Zone: {row['zone']}<br>Voiture: {row['voiture']}<br>Moto: {row['moto']}<br>Bus: {row['bus']}",
-        textposition='middle center',
-        textfont=dict(size=14, color='black')
-    ))
+# Reprojection en EPSG:3857 pour un calcul correct du centroid
+gdf_primary = gdf_primary.to_crs(epsg=3857)
+gdf_secondary = gdf_secondary.to_crs(epsg=3857)
+gdf_tertiary = gdf_tertiary.to_crs(epsg=3857)
 
-# Préparer les traces pour les lignes de flux
-line_traces = []
-flows = [
-    {'start_lat': 34.0522, 'start_lon': -118.2437, 'end_lat': 40.7128, 'end_lon': -74.0060, 'flux': 100},
-    {'start_lat': 40.7128, 'start_lon': -74.0060, 'end_lat': 51.5074, 'end_lon': -0.1276, 'flux': 200}
-]
-for row in flows:
-    line = go.Scattermapbox(
-        lat=[row['start_lat'], row['end_lat']],
-        lon=[row['start_lon'], row['end_lon']],
-        mode='lines',
-        line=dict(width=2, color='blue'),
-        hoverinfo='text',
-        text=f"Flux: {row['flux']}"
-    )
-    line_traces.append(line)
+# Reprojection en EPSG:4326 pour l'affichage correct
+gdf_primary = gdf_primary.to_crs(epsg=4326)
+gdf_secondary = gdf_secondary.to_crs(epsg=4326)
+gdf_tertiary = gdf_tertiary.to_crs(epsg=4326)
 
-# Créer la carte
-fig = go.Figure()
+# Fonction pour extraire les coordonnées et d'autres informations
+def get_line_info(geometry, road_type):
+    lats, lons, texts = [], [], []
+    for geom in geometry:
+        if geom.geom_type == 'MultiLineString':
+            for line in geom.geoms:
+                lons.extend([coord[0] for coord in line.coords] + [None])
+                lats.extend([coord[1] for coord in line.coords] + [None])
+                texts.extend([f"Type: {road_type}"] * len(line.coords) + [None])
+        elif geom.geom_type == 'LineString':
+            lons.extend([coord[0] for coord in geom.coords] + [None])
+            lats.extend([coord[1] for coord in geom.coords] + [None])
+            texts.extend([f"Type: {road_type}"] * len(geom.coords) + [None])
+    return lats, lons, texts
 
-# Ajouter les traces de diagrammes circulaires
-for trace in circle_traces:
-    fig.add_trace(trace)
+# Extraire les coordonnées et les informations pour chaque type de route
+lats_primary, lons_primary, texts_primary = get_line_info(gdf_primary.geometry, 'Primary')
+lats_secondary, lons_secondary, texts_secondary = get_line_info(gdf_secondary.geometry, 'Secondary')
+lats_tertiary, lons_tertiary, texts_tertiary = get_line_info(gdf_tertiary.geometry, 'Tertiary')
 
-# Ajouter les lignes de flux
-for trace in line_traces:
-    fig.add_trace(trace)
+# Calcul du centroïde après la reprojection
+# Calcul du centroïde après la reprojection en EPSG:3857
+centroid = gdf_primary.to_crs(epsg=3857).geometry.centroid
 
-# Configuration de la carte
-fig.update_layout(
-    mapbox=dict(
-        style="carto-positron",
-        center=dict(lat=39, lon=-98),
-        zoom=3
-    ),
-    showlegend=False,
-    margin=dict(l=0, r=0, t=0, b=0)
+# Reprojeter le centroïde en EPSG:4326 pour l'utiliser sur la carte
+centroid_lat = centroid.to_crs(epsg=4326).y.mean()
+centroid_lon = centroid.to_crs(epsg=4326).x.mean()
+
+
+# Créer des traces pour chaque type de route avec des lignes continues et texte de survol
+trace_primary = go.Scattermapbox(
+    lat=lats_primary,
+    lon=lons_primary,
+    mode='lines',
+    line=dict(width=5, color='red'),
+    name='Routes Primaires',
+    text=texts_primary,
+    hoverinfo='text'
 )
 
-# Layout de l'application Dash
+trace_secondary = go.Scattermapbox(
+    lat=lats_secondary,
+    lon=lons_secondary,
+    mode='lines',
+    line=dict(width=3, color='blue'),
+    name='Routes Secondaires',
+    text=texts_secondary,
+    hoverinfo='text'
+)
+
+trace_tertiary = go.Scattermapbox(
+    lat=lats_tertiary,
+    lon=lons_tertiary,
+    mode='lines',
+    line=dict(width=2, color='green'),
+    name='Routes Tertiaires',
+    text=texts_tertiary,
+    hoverinfo='text'
+)
+
+layout = go.Layout(
+    mapbox=dict(
+        style="carto-positron",
+        center=dict(lat=centroid_lat, lon=centroid_lon),
+        zoom=12
+    )
+)
+
+fig = go.Figure(data=[trace_primary, trace_secondary, trace_tertiary], layout=layout)
+
+# Initialiser l'application Dash
+app = Dash(__name__)
+
 app.layout = html.Div([
-    dcc.Graph(id='map', figure=fig)
+    dcc.Graph(figure=fig)
 ])
 
 if __name__ == '__main__':

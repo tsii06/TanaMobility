@@ -38,9 +38,25 @@
 }
 body {
     height: 100vh;
+    overflow: hidden;
 }
 *{
     font-size: 0.95rem;
-    font-family: "Arial";
+    font-family: "Roboto", "Arial", "Helvetica", sans-serif;
+}
+
+.legend-div{
+    padding: 5px;
+    display: flex;
+    align-items: center;
+    color: #009345;
+    border-bottom: 1px dashed #009345;
+    font-size: 1rem;
+}
+
+.legend-attribut-div{
+    display: flex; /* Flexbox pour alignement horizontal */
+    align-items: center; /* Alignement vertical des éléments */
+    padding: 4px 10px; /* Espacement interne */
 }
 

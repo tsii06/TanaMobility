@@ -113,7 +113,8 @@ def get_volume_deplacements(noms_zones=None):
 
         # Si noms_zones est fourni et non vide, filtrer par les noms des zones
         if noms_zones:
-            query = select(vue).where(vue.c.zone_nom.in_(noms_zones))
+            query = select(vue).where(func.lower(vue.c.zone_nom).in_([nom.lower() for nom in noms_zones]))
+
         else:
             # Si noms_zones est None ou vide, sélectionner les 8 premières zones par volume total croissant
             query = select(vue).order_by(vue.c.total_volume.desc()).limit(8)
@@ -175,17 +176,17 @@ def loadRevenuCarte():
         session.close()
 
 
-def get_nombre_vehicules_par_zone( noms_zones=None):
+def get_nombre_vehicules_par_zone(noms_zones=None):
     metadata = MetaData()
     session = get_session()
 
     try:
         # Charger la vue
-        vue = Table('vue_nombre_vehicules_par_zone', metadata, autoload_with=session.bind)
+        vue = Table('resultat_jointure', metadata, autoload_with=session.bind)
 
         # Construire la requête en fonction de noms_zones
         if noms_zones:
-            query = select(vue).where(vue.c.zone_nom.in_(noms_zones))
+            query = select(vue).where(func.lower(vue.c.zone_nom).in_([nom.lower() for nom in noms_zones]))
         else:
             # Si noms_zones est None ou vide, sélectionner les 8 premières zones par nombre total décroissant
             query = select(vue).order_by(vue.c.nombre_total.desc()).limit(8)
@@ -250,6 +251,79 @@ def join_centroids_and_pivoted_data():
     df_merged = pd.merge(df_centroids, df_pivoted, left_on='ensemble_concat', right_on='zone_nom', how='inner')
 
     # Afficher le DataFrame résultant pour débogage
-    print(df_merged.shape[0])
+    # print(df_merged.shape[0])
 
     return df_merged
+
+def get_matrice_od_data(noms_zones=None):
+    metadata = MetaData()
+    session = get_session()
+
+    try:
+        # Charger la vue
+        vue = Table('vue_matrice', metadata, autoload_with=session.bind)
+
+        # Construire la requête en fonction des noms_zones
+        if noms_zones:
+            query = select(vue).where(func.lower(vue.c.nom_origine).in_([nom.lower() for nom in noms_zones]))
+        else:
+            # Sélectionner toutes les zones si noms_zones est None
+            query = select(vue).order_by(vue.c.nombre.desc()).limit(10)
+
+        # Exécuter la requête et transformer les résultats en DataFrame
+        result = session.execute(query)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+        # print(df)
+        return df
+
+    finally:
+        # Fermer la session
+        session.close()
+
+
+def get_congestion_point():
+    metadata = MetaData()
+    session = get_session()
+
+    try:
+        # Charger la vue dans SQLAlchemy
+        vue = Table('congestion', metadata, autoload_with=session.bind)
+
+        # Créer une requête SELECT pour la vue
+        query = select(vue)
+
+        # Exécuter la requête et transformer les résultats en DataFrame
+        result = session.execute(query)
+        df = pd.DataFrame(result.fetchall(), columns=result.keys())
+
+        # Vérifier et convertir `id_osm` dans `df` en type entier (int64)
+        df['id_osm'] = df['id_osm'].astype('int32')
+
+        # Charger le GeoDataFrame avec les routes
+        gdf = gpd.read_file(r"data/Antananarivo_voiries_primaires-secondaires-tertiaire.geojson")
+
+        # Vérifier et convertir `osm_id` dans `gdf` en type entier (int64)
+        gdf.loc[:, 'osm_id'] = gdf['osm_id'].astype('int32')
+
+        # Reprojection en EPSG:3857 pour un calcul correct des centroides
+        gdf = gdf.to_crs(epsg=3857)
+
+        # Calculer les centroides des segments de routes
+        gdf['centroid'] = gdf.centroid
+        gdf_centroids = gdf[['osm_id', 'centroid']].copy()  # Créer une copie explicite
+
+        # Reprojection en EPSG:4326 pour l'affichage correct
+        gdf_centroids.loc[:, 'centroid'] = gdf_centroids['centroid'].to_crs(epsg=4326)
+
+        # Jointure des centroides avec le DataFrame `congestion`
+        df = df.merge(gdf_centroids, left_on='id_osm', right_on='osm_id', how='left')
+        print(df.shape[0])
+
+        return df
+
+    except Exception as e:
+        print(f"Erreur lors de l'accès à la vue ou au GeoJSON : {e}")
+        return None
+def get_zone_coordinate(zone):
+    zone_coordinate = 0
+    return zone_coordinate

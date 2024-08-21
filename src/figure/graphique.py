@@ -1,12 +1,13 @@
+import numpy as np
 from dash import dcc,html,dash_table
 import pandas as pd
 import plotly.graph_objects as go
 from src.data.traitement import loadPopulationCarte, load_data_population_bar_chart, get_volume_deplacements, \
-    get_nombre_vehicules_par_zone
+    get_nombre_vehicules_par_zone, get_matrice_od_data
 
 # Chargement des données
 gdf_merged = loadPopulationCarte()
-def generate_graph_density(clickData):
+def generate_graph_density():
     components = []
 
     # Charger les données pour le bar chart
@@ -133,8 +134,12 @@ def generate_graph_vehicules(noms_zones=None):
     # Si une seule zone est sélectionnée, on crée un pie chart pour cette zone
     if noms_zones and len(noms_zones) == 1:
         zone_nom = noms_zones[0]
-        df_zone = df_vehicules[df_vehicules['zone_nom'] == zone_nom]
+        zone_nom = zone_nom.lower()  # ou .upper() si vous préférez
 
+        df_zone = df_vehicules[df_vehicules['zone_nom'].str.lower() == zone_nom]
+
+        df_zone = df_zone[df_zone['nombre_total'] > 0]
+        print(f"Données filtrées : {df_zone}")
         fig_pie = go.Figure(data=[
             go.Pie(
                 labels=df_zone['type_vehicule'],
@@ -200,4 +205,120 @@ def generate_graph_vehicules(noms_zones=None):
                     id="title-Repartition-Vehicules")
         ], className='custom-div'),
         *components
+    ])
+
+
+# Fonction pour générer le diagramme de Sankey
+def generate_sankey_diagram(noms_zones=None):
+    df_matrice = get_matrice_od_data(noms_zones)
+
+    # Créer une liste unique des zones pour les nœuds
+    zones = list(pd.concat([df_matrice['nom_origine'], df_matrice['nom_destination']]).unique())
+
+    # Créer des indices pour les zones
+    zone_indices = {zone: i for i, zone in enumerate(zones)}
+
+    # Créer les sources, cibles et valeurs pour le diagramme de Sankey
+    sources = [zone_indices[zone] for zone in df_matrice['nom_origine']]
+    targets = [zone_indices[zone] for zone in df_matrice['nom_destination']]
+    values = df_matrice['nombre']
+
+    # Créer les couleurs pour les nœuds
+    node_colors = ['#1f77b4' if i < len(df_matrice['nom_origine'].unique()) else '#ff7f0e' for i in range(len(zones))]
+
+    # Créer le diagramme de Sankey avec deux colonnes
+    fig_sankey = go.Figure(go.Sankey(
+        node=dict(
+            pad=15,
+            thickness=20,
+            line=dict(color="black", width=0.5),
+            label=zones,
+            color=node_colors
+        ),
+        link=dict(
+            source=sources,
+            target=targets,
+            value=values,
+            color=[f"rgba(31, 119, 180, {value/sum(values):.2f})" for value in values]  # Assigner des couleurs avec opacité variable selon la valeur
+        )
+    ))
+
+    fig_sankey.update_layout(
+        title_text="Flux de Déplacements entre Zones",
+        font_size=10
+    )
+
+    # Retourner le Div contenant le titre et le graphique
+    return html.Div([
+        html.Div([
+            html.I(className='fas fa-chart-line', style={'margin-right': '3rem', 'font-size': '1.5rem'}),
+            html.H3("Flux de Déplacements entre Zones", style={'display': 'inline-block', 'textAlign': 'center', 'margin': 0},
+                    id="title-Flux-Deplacements")
+        ], className='custom-div'),
+        dcc.Graph(id='sankey-diagram', figure=fig_sankey, config={
+            'displayModeBar': True,
+            'displaylogo': False,
+            'modeBarButtonsToRemove': ['toImage', 'zoom2d', 'pan2d'],
+            'scrollZoom': False
+        })
+    ])
+
+
+def generate_chord_diagram(noms_zones=None):
+    df_matrice = get_matrice_od_data(noms_zones)
+
+    # Liste unique des zones pour les nœuds
+    zones = list(pd.concat([df_matrice['nom_origine'], df_matrice['nom_destination']]).unique())
+
+    # Créer une matrice de flux
+    matrix_size = len(zones)
+    matrix = np.zeros((matrix_size, matrix_size))
+
+    zone_indices = {zone: i for i, zone in enumerate(zones)}
+
+    # Remplir la matrice avec les valeurs de déplacement
+    for _, row in df_matrice.iterrows():
+        i = zone_indices[row['nom_origine']]
+        j = zone_indices[row['nom_destination']]
+        matrix[i, j] = row['nombre']
+
+    # Création de liens (chords) entre les zones
+    traces = []
+    for i in range(matrix_size):
+        for j in range(matrix_size):
+            if matrix[i, j] > 0:
+                trace = go.Scatterpolar(
+                    r=[matrix[i, j], matrix[i, j], 0],
+                    theta=[zones[i], zones[j], zones[i]],
+                    fill='toself',
+                    name=f'{zones[i]} → {zones[j]}',
+                    hoverinfo='text',
+                    text=f'Flux: {matrix[i, j]}'
+                )
+                traces.append(trace)
+
+    fig = go.Figure(traces)
+
+    fig.update_layout(
+        title="Diagramme de Cordes des Flux entre Zones",
+        showlegend=False,
+        polar=dict(
+            radialaxis=dict(visible=True, range=[0, matrix.max()]),
+        ),
+    )
+
+    # Retourner le Div contenant le titre et le graphique
+    return html.Div([
+        html.Div([
+            html.I(className='fas fa-circle-notch', style={'margin-right': '3rem', 'font-size': '1.5rem'}),
+            html.H3("Flux de Déplacements entre Zones",
+                    style={'display': 'inline-block', 'textAlign': 'center', 'margin': 0},
+                    id="title-Flux-Deplacements-Chord")
+        ], className='custom-div'),
+        dcc.Graph(id='chord-diagram', figure=fig, config={
+            'displayModeBar': True,
+            'displaylogo': False,
+            'modeBarButtonsToRemove': ['toImage', 'zoom2d', 'pan2d'],
+            'scrollZoom': False
+        })
     ])

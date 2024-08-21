@@ -8,6 +8,7 @@ def layout(app: Dash):
     return dbc.Container([
         dcc.Store(id='selected-carto', data=[]),
         dcc.Store(id='selected-thematiques', data=[]),
+        dcc.Store(id='selected-route', data=[]),
         dbc.Row([
             dbc.Col(
                 sidebar(app),

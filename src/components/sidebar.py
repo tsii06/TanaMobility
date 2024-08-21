@@ -42,10 +42,61 @@ def sidebar(app):
                                 ],
                                 className="checklist-custom",
                                 style={'padding': '10px'},
-                                value='densite'
+                                # value='densite'
                             ),
                         ],
                         title="Carte Choroplète",
+                    ),
+                ],
+                flush=True
+            ),
+            html.Div(
+                [
+                    html.H3("Route", style={'display': 'inline-block', 'verticalAlign': 'middle'}),
+                ],
+                style={
+                    'textAlign': 'center',
+                    'padding': '10px',
+                    'backgroundColor': '#2c3e50',
+                    'color': 'white',
+                    'display': 'flex',
+                    'alignItems': 'center',  # Centrage vertical
+                    'justifyContent': 'center'  # Centrage horizontal
+                }
+            ),
+
+            # Démographie et Population
+            dbc.Accordion(
+                [
+                    dbc.AccordionItem(
+                        [
+                            dcc.Checklist(
+                                id='checklist-route',
+                                options=[
+                                    {
+                                        'label': html.Span([
+                                            'Segments routières avec le plus grand traffic'
+                                        ]),
+                                        'value': 'segment'
+                                    },
+                                    {
+                                        'label': html.Span([
+                                            'Densité du trafic le plus de volume '
+                                        ]),
+                                        'value': 'densitetrafic'
+                                    },
+                                    {
+                                        'label': html.Span([
+                                            'Itinéraire le plus empruntés'
+                                        ]),
+                                        'value': 'itineraire'
+                                    },
+                                ],
+                                className="checklist-custom",
+                                style={'padding': '10px'},
+                            ),
+                        ],
+                        title="Couche routieres",
                     ),
                 ],
                 flush=True
@@ -93,9 +144,9 @@ def sidebar(app):
                                     },
                                     {
                                         'label': html.Span([
-                                            'Taux de Pauvreté'
+                                            'Matrice OD'
                                         ]),
-                                        'value': 'taux_pauvrete'
+                                        'value': 'matrice'
                                     },
                                 ],
                                 className="checklist-custom",
