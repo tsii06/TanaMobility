@@ -52,8 +52,8 @@ TanaMobility est un projet destiné à modéliser et visualiser les flux de tran
 ## Configuration de la Base de Données
 
 Ce projet utilise une base de données PostgreSQL pour stocker et gérer les données de trafic et de mobilité. Suivez les étapes ci-dessous pour configurer la base de données :
-- Copier le script dans le fichier sql: **base.sql**
-- Configurer les paramètres de connexion dans le fichier **data/database.py** en changeant le mot de passe
+- Copier le script dans le fichier sql: **base.sql** et executez pour la creation du base de donnée, des tables et des views.
+- Configurer les paramètres de connexion dans le fichier **data/database.py** en changeant le mot de passe et le nom d'utilisateur
 
 
 ## Installation
@@ -67,6 +67,8 @@ pip install -r environement/requirements.txt
 ```
 
 ## Utilisation
+-Executer le fichier **insertionStatique.py** dans le racine du projet pour faire de inserer des données statiques dans le base de donnée. Assurez-vous que les paramètres de connexion est bien configuré
+
 -Pour lancer l'application en local :
 ```bash
 python app.py
