@@ -6,6 +6,9 @@ Visualisation et Modélisation des Flux de Transport à Antananarivo.
 
 TanaMobility est un projet destiné à modéliser et visualiser les flux de transport à Antananarivo, Madagascar. Le projet utilise des données géospatiales et des outils de visualisation pour mieux comprendre les mouvements de population et optimiser les infrastructures de transport.
 
+![Capture d'ecran du site](assets/images/capture.png)
+
+
 ## Structure du Projet
 
 - **.prompts/** : Contient des fichiers ou des données associées aux prompts utilisés dans le projet.
