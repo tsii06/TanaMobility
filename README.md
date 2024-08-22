@@ -68,6 +68,7 @@ pip install -r environement/requirements.txt
 
 ## Utilisation
 -Executer le fichier **insertionStatique.py** dans le racine du projet pour faire de inserer des données statiques dans le base de donnée. Assurez-vous que les paramètres de connexion est bien configuré
+
 -Pour lancer l'application en local :
 ```bash
 python app.py
