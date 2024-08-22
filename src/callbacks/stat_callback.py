@@ -6,11 +6,11 @@ from dash import html, dcc
 
 def register_callbacks(app):
     @app.callback(
-        [Output('selected-thematiques', 'data'),
-         Output('selected-carto', 'data'),
+        [Output('selected-carto', 'data'),
+         Output('selected-thematiques', 'data'),
          Output('selected-route', 'data')],
-        [Input('checklist-thematiques', 'value'),
-         Input('checklist', 'value'),
+        [Input('checklist-carto', 'value'),
+         Input('checklist-thematiques', 'value'),
          Input('checklist-route', 'value')]
     )
     def update_selected(selected_values, selected_carto,selected_route):
@@ -21,32 +21,31 @@ def register_callbacks(app):
          Output('typologie', 'children'),
          Output('finances', 'children'),
          Output('matrice', 'children')],
-        [Input('selected-carto', 'data'),
-         Input('selected-thematiques', 'data'),
+        [Input('selected-thematiques', 'data'),
          Input('clicked-zones', 'data')
     ]
     )
-    def update_graphs(selected_carto, selected_thematiques, clicked_zones):
-        if not selected_thematiques or not selected_carto:
+    def update_graphs(selected_thematiques, clicked_zones):
+        if not selected_thematiques:
             return html.Div(), html.Div(), html.Div(), html.Div()
 
         # Utiliser les zones cliquées dans les graphiques
-        if 'matrice' in selected_thematiques or 'matrice' in selected_carto:
+        if 'matrice' in selected_thematiques:
             matrice_od = generate_sankey_diagram(noms_zones=clicked_zones)
         else:
             matrice_od = html.Div()
 
-        if 'densite' in selected_thematiques or 'densite' in selected_carto:
+        if 'densite' in selected_thematiques:
             densite_content = generate_graph_density()
         else:
             densite_content = html.Div()
 
-        if 'deplacement' in selected_thematiques or 'deplacement' in selected_carto:
+        if 'deplacement' in selected_thematiques:
             distance_content = generate_graph_deplacement(noms_zones=clicked_zones)
         else:
             distance_content = html.Div()
 
-        if 'typologie' in selected_thematiques or 'typologie' in selected_carto:
+        if 'typologie' in selected_thematiques:
             typologie_content = generate_graph_vehicules(noms_zones=clicked_zones)
         else:
             typologie_content = html.Div()

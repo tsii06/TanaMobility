@@ -5,7 +5,7 @@ import plotly.graph_objs as go
 from src.data.traitement import loadRevenuCarte, join_centroids_and_pivoted_data
 
 
-def register_map_callbacks(app, gdf_merged, density, gdf_geojson):
+def register_map_callbacks(app, gdf_merged,df, density, gdf_geojson,lats, lons,congestion,df_filtered):
     @app.callback(
         Output('map', 'figure'),
         [Input('checklist-thematiques', 'value'),
@@ -32,22 +32,22 @@ def register_map_callbacks(app, gdf_merged, density, gdf_geojson):
                 fig.add_trace(create_density_map(density, gdf_merged))
 
             if 'revenu' in selected_thematiques:
-                df = loadRevenuCarte()  # Récupérer les données du revenu médian
-                fig.add_trace(create_revenue_map(density, df))
+                  # Récupérer les données du revenu médian
+                fig.add_trace(create_revenue_map(density,df))
         else:
             fig.add_trace(create_default_map(gdf_geojson))
 
-        fig.add_trace(create_route())
+        fig.add_trace(create_route(lats, lons))
 
         if selected_route:
             if 'densitetrafic' in selected_route:
-                fig.add_trace(create_traffic_density_map())
+                fig.add_trace(create_traffic_density_map(congestion))
 
             if 'segment' in selected_route:
-                fig.add_trace(create_traffic_markers())
+                fig.add_trace(create_traffic_markers(congestion))
 
             if 'itineraire' in selected_route:
-                traces = create_route_with_traffic()
+                traces = create_route_with_traffic(df_filtered)
                 fig.add_traces(traces)
 
 

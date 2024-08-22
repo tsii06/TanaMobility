@@ -194,7 +194,6 @@ def get_nombre_vehicules_par_zone(noms_zones=None):
         # Exécuter la requête et transformer les résultats en DataFrame
         result = session.execute(query)
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
-        print(df)
         return df
 
     finally:

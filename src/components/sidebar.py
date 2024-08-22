@@ -25,7 +25,7 @@ def sidebar(app):
                     dbc.AccordionItem(
                         [
                             dcc.RadioItems(
-                                id='checklist-thematiques',
+                                id='checklist-carto',
                                 options=[
                                     {
                                         'label': html.Span([
@@ -122,7 +122,7 @@ def sidebar(app):
                     dbc.AccordionItem(
                         [
                             dcc.Checklist(
-                                id='checklist',
+                                id='checklist-thematiques',
                                 options=[
                                     {
                                         'label': html.Span([

@@ -2,7 +2,7 @@
 import geopandas as gpd
 import plotly.graph_objs as go
 
-from src.data.traitement import get_congestion_point
+from src.data.traitement import get_congestion_point, loadRevenuCarte
 
 
 def create_density_map(density, gdf_merged):
@@ -21,8 +21,9 @@ def create_density_map(density, gdf_merged):
         showscale=False
     )
 
-def create_revenue_map(density, df):
+def create_revenue_map(density,df):
     """Crée une carte choroplèthe pour le revenu médian."""
+
     return go.Choroplethmapbox(
         geojson=density,
         locations=df['ensemble_concat'],
@@ -53,31 +54,7 @@ def create_default_map(gdf_geojson):
         showscale=False
     )
 
-def create_route():
-    # Charger le fichier GeoJSON
-    gdf = gpd.read_file(r"data/Antananarivo_voiries_primaires-secondaires-tertiaire.geojson")
-
-    # Filtrer les routes par type (primary, secondary, tertiary)
-    gdf_filtered = gdf[gdf['highway'].isin(['primary', 'secondary', 'tertiary'])]
-
-    # Reprojection en EPSG:3857 pour un calcul correct du centroid
-    gdf_filtered = gdf_filtered.to_crs(epsg=3857)
-
-    # Reprojection en EPSG:4326 pour l'affichage correct
-    gdf_filtered = gdf_filtered.to_crs(epsg=4326)
-
-    # Extraire les coordonnées des lignes
-    lats, lons = [], []
-    for geom in gdf_filtered.geometry:
-        if geom.geom_type == 'MultiLineString':
-            for line in geom.geoms:
-                lons.extend([coord[0] for coord in line.coords] + [None])
-                lats.extend([coord[1] for coord in line.coords] + [None])
-        elif geom.geom_type == 'LineString':
-            lons.extend([coord[0] for coord in geom.coords] + [None])
-            lats.extend([coord[1] for coord in geom.coords] + [None])
-
-    # Créer une trace pour afficher toutes les routes avec la même couleur et la même largeur
+def create_route(lats, lons):
     return go.Scattermapbox(
         lat=lats,
         lon=lons,
@@ -87,9 +64,26 @@ def create_route():
         hoverinfo='skip'
     )
 
-def create_traffic_markers():
+
+def extract_lat_lon():
+    gdf = gpd.read_file(r"data/Antananarivo_voiries_primaires-secondaires-tertiaire.geojson")
+    gdf_filtered = gdf[gdf['highway'].isin(['primary', 'secondary', 'tertiary'])]
+    gdf_filtered = gdf_filtered.to_crs(epsg=3857)
+    gdf_filtered = gdf_filtered.to_crs(epsg=4326)
+    lats, lons = [], []
+    for geom in gdf_filtered.geometry:
+        if geom.geom_type == 'MultiLineString':
+            for line in geom.geoms:
+                lons.extend([coord[0] for coord in line.coords] + [None])
+                lats.extend([coord[1] for coord in line.coords] + [None])
+        elif geom.geom_type == 'LineString':
+            lons.extend([coord[0] for coord in geom.coords] + [None])
+            lats.extend([coord[1] for coord in geom.coords] + [None])
+    return lats, lons
+
+def create_traffic_markers(df):
     # Créer une trace pour les marqueurs de trafic
-    df = get_congestion_point()
+
     marker_trace = go.Scattermapbox(
         lat=df['centroid'].apply(lambda point: point.y),  # Latitude
         lon=df['centroid'].apply(lambda point: point.x),  # Longitude
@@ -111,8 +105,7 @@ def create_traffic_markers():
     return marker_trace
 
 
-def create_traffic_density_map():
-    df = get_congestion_point()
+def create_traffic_density_map(df):
 
     # Assurez-vous que les coordonnées sont bien des flottants
     df['lat'] = df['centroid'].apply(lambda point: point.y if point else None)
@@ -136,26 +129,31 @@ def create_traffic_density_map():
     # Configurer la carte
 
 
-def create_route_with_traffic():
-    # Charger le fichier GeoJSON
-    gdf = gpd.read_file(r"data/Antananarivo_voiries_primaires-secondaires-tertiaire.geojson")
+def load_and_prepare_traffic_data(geojson_path, traffic_data_function):
 
-    # Charger les volumes de trafic depuis une autre source (par exemple, une base de données ou un CSV)
-    df_traffic = get_congestion_point()  # Cette fonction doit retourner un DataFrame avec les volumes de trafic
+    # Charger les données géographiques
+    gdf = gpd.read_file(geojson_path)
+
+    # Charger les données de trafic
+    df_traffic = traffic_data_function()  # Cette fonction doit retourner un DataFrame avec les volumes de trafic
     df_traffic['id_osm'] = df_traffic['id_osm'].astype('int32')  # Assurez-vous que les types sont cohérents
-    # Filtrer les routes par type (primary, secondary, tertiary)
+
+    # Filtrer les routes principales, secondaires et tertiaires
     gdf_filtered = gdf[gdf['highway'].isin(['primary', 'secondary', 'tertiary'])]
 
-    # Reprojection en EPSG:3857 pour un calcul correct des coordonnées
+    # Convertir en système de coordonnées approprié
     gdf_filtered = gdf_filtered.to_crs(epsg=3857)
-
-    # Reprojection en EPSG:4326 pour l'affichage correct
     gdf_filtered = gdf_filtered.to_crs(epsg=4326)
 
-    # Jointure des données de trafic avec les données géométriques
-    gdf_filtered = gdf_filtered.merge(df_traffic[['id_osm', 'total_traffic_volume']], left_on='osm_id', right_on='id_osm', how='left')
+    # Fusionner les données géographiques avec les volumes de trafic
+    gdf_filtered = gdf_filtered.merge(df_traffic[['id_osm', 'total_traffic_volume']], left_on='osm_id',
+                                      right_on='id_osm', how='left')
+
+    # Remplir les valeurs manquantes par 0 pour les volumes de trafic
     gdf_filtered['total_traffic_volume'] = gdf_filtered['total_traffic_volume'].fillna(0)
-    # Extraire les coordonnées des lignes et ajuster les largeurs/couleurs en fonction du volume de trafic
+
+    return gdf_filtered
+def create_route_with_traffic(gdf_filtered):
     traces = []
     for _, row in gdf_filtered.iterrows():
         lats, lons = [], []
