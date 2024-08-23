@@ -10,8 +10,6 @@ def register_click_map_callback(app):
             return clicked_zones
 
         clicked_location = clickData['points'][0]['location']
-        print(clicked_location)
-        print(clickData)
 
         # Ajouter la zone cliquée à la liste
         if clicked_location not in clicked_zones:
