@@ -46,6 +46,7 @@ def sidebar(app):
                             ),
                         ],
                         title="Carte Choroplète",
+                        className='dash-checklist',
                     ),
                 ],
                 flush=True
@@ -92,7 +93,7 @@ def sidebar(app):
                                         'value': 'itineraire'
                                     },
                                 ],
-                                className="checklist-custom",
+                                className='dash-checklist',
                                 style={'padding': '10px'},
                             ),
                         ],
@@ -149,7 +150,7 @@ def sidebar(app):
                                         'value': 'matrice'
                                     },
                                 ],
-                                className="checklist-custom",
+                                className='dash-checklist',
                                 style={'padding': '10px'},
                             ),
                         ],
@@ -166,5 +167,6 @@ def sidebar(app):
             'overflow-y': 'auto',  # Active le défilement vertical
             'backgroundColor': '#2c3e50',  # Couleur de fond du sidebar
             'color': 'white',  # Couleur du texte
-        }
+        },
+        className='scroll-style'
     )

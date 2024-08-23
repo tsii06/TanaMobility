@@ -1,7 +1,6 @@
-from dash import dcc, html, Dash, Input, Output
-
+from dash import dcc, html, Dash
+import dash_bootstrap_components as dbc
 def create_map(app: Dash):
-
     return html.Div(
         children=[
             dcc.Graph(
@@ -9,84 +8,55 @@ def create_map(app: Dash):
                 config={
                     'displayModeBar': False
                 },
-                style={'width': '100%', 'height': 'calc(80vh - 60px)'}
+                style={'width': '100%', 'height': 'calc(100vh - 70px)'}
             ),
             html.Div(
-                id='legend',
+                style={
+                    'position': 'absolute',  # Permet de superposer la légende sur la carte
+                    'top': '20px',  # Ajuste la position de la légende en haut
+                    'right': '10px',  # Ajuste la position de la légende à gauche
+                    'background-color': 'rgba(255, 255, 255, 0.8)',  # Fond blanc semi-transparent
+                    'padding': '10px',  # Ajoute un peu de padding autour du contenu
+                    'border-radius': '5px',  # Coins arrondis pour un style plus moderne
+                    'box-shadow': '0 0 10px rgba(0, 0, 0, 0.1)',  # Légère ombre pour se démarquer
+                    'z-index': '1000',  # Assure que la légende est au-dessus de la carte
+                    'max-height': '40vh',  # Limite la hauteur maximale
+                    'overflow-y': 'auto',  # Ajoute le défilement vertical si le contenu dépasse la hauteur
+                },
+                className='scroll-style',
                 children=[
-                    html.H4('Trafic/Road Segment' , className='legend-div'), # Ajout du titre
-                    html.Div(
-                        children=[
-                            html.Span(
-                                style={
-                                    'background-color': '#FFFFB2',
-                                    'display': 'inline-block',
-                                    'width': '20px',
-                                    'height': '20px',
-                                    'margin-right': '10px',
-                                    'border': '1px solid black',
-                                    'border-radius': '50%',
-                                }
-                            ),
-                            html.Span('1900 - 5000')
-                        ],
-                        className='legend-attribut-div'
-                    ),
-                    html.Div(
-                        children=[
-                            html.Span(
-                                style={
-                                    'background-color': '#FECC5C',
-                                    'display': 'inline-block',
-                                    'width': '20px',
-                                    'height': '20px',
-                                    'margin-right': '10px',
-                                    'border': '1px solid black',
-                                    'border-radius': '50%',
-                                }
-                            ),
-                            html.Span('5000 - 7500')
-                        ],
-                        className='legend-attribut-div'
-                    ),
-                    html.Div(
-                        children=[
-                            html.Span(
-                                style={
-                                    'background-color': '#FD8D3C',
-                                    'display': 'inline-block',
-                                    'width': '20px',
-                                    'height': '20px',
-                                    'margin-right': '10px',
-                                    'border': '1px solid black',
-                                    'border-radius': '50%',
-                                }
-                            ),
-                            html.Span('7500 - 15300')
-                        ],
-                        className='legend-attribut-div'
-                    ),
-                    html.Div(
-                        children=[
-                            html.Span(
-                                style={
-                                    'background-color': '#E31A1C',
-                                    'display': 'inline-block',
-                                    'width': '20px',
-                                    'height': '20px',
-                                    'margin-right': '10px',
-                                    'border': '1px solid black',
-                                    'border-radius': '50%',
-                                }
-                            ),
-                            html.Span('15400 - 50000')
-                        ],
-                        className='legend-attribut-div'
-                    ),
-                ],
-                style={'height': '20vh', 'padding': '10px', 'background-color': 'rgb(226 227 229 / 42%)', 'overflow-y': 'auto'}
-            )
-
+                    html.Div(id='population-legend'),
+                    html.Div(id='segment-legend'),
+                    html.Div(id='route-legend'),
+                    html.Div(id='density-legend')
+                ]
+            ),
+            html.Button(
+                html.I(className="fas fa-expand"),  # Utilisation de l'icône "expand"
+                id='fullscreen-btn',
+                style={
+                    'position': 'absolute',
+                    'bottom': '80px',  # Positionné en bas
+                    'right': '10px',  # Positionné à droite
+                    'z-index': '1001',  # Assure que le bouton est au-dessus de la carte
+                    'padding': '5px',
+                    'border-radius': '5px',
+                    'background-color': '#cfe2ff',
+                    'color': 'white',
+                    'border': 'none',
+                    'cursor': 'pointer',
+                    'box-shadow': '0 0 10px rgba(0, 0, 0, 0.1)',
+                }
+            ),
+            html.Div(id='popup-div', style={'display': 'none'}, children=[
+                dbc.Card([
+                    dbc.CardBody([
+                        html.H4(id='zone-title'),
+                        html.P("Cliquez sur le bouton ci-dessous pour plus de détails."),
+                        dbc.Button("Voir les détails", id='details-button', color="primary")
+                    ])
+                ], style={'position': 'absolute', 'top': '10%', 'left': '50%', 'transform': 'translate(-50%, -50%)'})
+            ])
         ],
-        style={'display': 'flex', 'flex-direction': 'column', 'height': '100vh'}
+        style={'position': 'relative', 'height': '100vh'}  # Position relative pour le conteneur parent
     )

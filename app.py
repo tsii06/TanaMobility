@@ -3,6 +3,8 @@ from dash import Dash, html, dcc
 import dash_bootstrap_components as dbc
 
 from src.callbacks.click_map_callback import register_click_map_callback
+from src.callbacks.custom_callback import custom_callback
+from src.callbacks.legend_callback import register_legend_callback
 from src.callbacks.page_callback import page_callback
 from src.components.header import header
 from src.data.traitement import loadPopulationCarte, loadRepartitionZonale, loadRevenuCarte, get_congestion_point
@@ -36,6 +38,8 @@ register_callbacks(app)
 page_callback(app)
 register_click_map_callback(app)
 # register_double_click(app)
+register_legend_callback(app)
+custom_callback(app)
 
 
 

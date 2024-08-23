@@ -11,7 +11,7 @@ def create_density_map(density, gdf_merged):
         geojson=density,
         locations=gdf_merged['identifiant_commune'],
         z=gdf_merged['population_totale'],
-        colorscale='Reds',
+        colorscale='YlOrRd',
         marker_opacity=0.6,
         marker_line_width=1,
         featureidkey='properties.identifiant_commune',
@@ -59,7 +59,7 @@ def create_route(lats, lons):
         lat=lats,
         lon=lons,
         mode='lines',
-        line=dict(width=3, color='rgba(128, 128, 128, 0.8)'),
+        line=dict(width=1.5, color='#4682B4'),
         name='Routes',
         hoverinfo='skip'
     )
@@ -91,7 +91,7 @@ def create_traffic_markers(df):
         marker=dict(
             size=20,  # Ajuster la taille en fonction du volume
             color=df['total_traffic_volume'],       # Couleur en fonction du volume
-            colorscale='YlOrRd',                    # Echelle de couleurs (jaune à rouge)
+            colorscale='Viridis',                    # Echelle de couleurs (jaune à rouge)
             cmin=df['total_traffic_volume'].min(),
             cmax=df['total_traffic_volume'].max(),
             showscale=False
@@ -124,7 +124,8 @@ def create_traffic_density_map(df):
         zmin=df['total_traffic_volume'].min(),
         zmax=df['total_traffic_volume'].max(),
         opacity=0.9,
-        showscale=False
+        showscale=False,
+        hoverinfo='skip'
     )
     # Configurer la carte
 

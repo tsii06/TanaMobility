@@ -47,7 +47,7 @@ CREATE TABLE population (
     annee INTEGER NOT NULL,  -- Année de la donnée de population
     population_masculine INTEGER NOT NULL,  -- Nombre d'hommes dans la zone
     population_feminine INTEGER NOT NULL,  -- Nombre de femmes dans la zone
-    UNIQUE(id_zone, annee)
+    UNIQUE(annee)
 );
 
 

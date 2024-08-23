@@ -126,6 +126,7 @@ def generate_graph_deplacement(noms_zones=None):
         *components
     ])
 
+
 def generate_graph_vehicules(noms_zones=None):
     df_vehicules = get_nombre_vehicules_par_zone(noms_zones)
 
@@ -134,12 +135,15 @@ def generate_graph_vehicules(noms_zones=None):
     # Si une seule zone est sélectionnée, on crée un pie chart pour cette zone
     if noms_zones and len(noms_zones) == 1:
         zone_nom = noms_zones[0]
-        zone_nom = zone_nom.lower()  # ou .upper() si vous préférez
+        zone_nom = zone_nom.lower()  # Transformation du nom de la zone en minuscule (ou majuscule si vous préférez)
 
+        # Filtrer les données pour la zone sélectionnée
         df_zone = df_vehicules[df_vehicules['zone_nom'].str.lower() == zone_nom]
+        df_zone = df_zone[df_zone['nombre_total'] > 0]  # Exclure les valeurs nulles ou égales à 0
 
-        df_zone = df_zone[df_zone['nombre_total'] > 0]
         print(f"Données filtrées : {df_zone}")
+
+        # Créer un pie chart pour la zone
         fig_pie = go.Figure(data=[
             go.Pie(
                 labels=df_zone['type_vehicule'],
@@ -149,9 +153,9 @@ def generate_graph_vehicules(noms_zones=None):
             )
         ])
 
-        # Mise à jour du layout du graphique
+        # Mise à jour du layout du graphique pie chart
         fig_pie.update_layout(
-            title=f"Répartition des types de véhicules dans la zone {zone_nom}",
+            title=f"Répartition des types de véhicules dans la zone {zone_nom.capitalize()}",
             margin=dict(l=50, r=50, t=100, b=50)
         )
 
@@ -163,8 +167,14 @@ def generate_graph_vehicules(noms_zones=None):
         }))
 
     else:
-        # Si plusieurs zones sont sélectionnées, on peut faire un bar chart empilé
+        # Si plusieurs zones sont sélectionnées, on crée un bar chart empilé
         fig_bar = go.Figure()
+
+        # Calculer les pourcentages pour chaque type de véhicule par zone
+        df_totals = df_vehicules.groupby('zone_nom')['nombre_total'].sum().reset_index()
+        df_totals.rename(columns={'nombre_total': 'total_vehicules'}, inplace=True)
+        df_vehicules = df_vehicules.merge(df_totals, on='zone_nom')
+        df_vehicules['pourcentage'] = df_vehicules['nombre_total'] / df_vehicules['total_vehicules'] * 100
 
         for type_vehicule in df_vehicules['type_vehicule'].unique():
             df_type = df_vehicules[df_vehicules['type_vehicule'] == type_vehicule]
@@ -172,22 +182,24 @@ def generate_graph_vehicules(noms_zones=None):
             fig_bar.add_trace(go.Bar(
                 name=type_vehicule,
                 y=df_type['zone_nom'],  # Nom des zones sur l'axe y
-                x=df_type['nombre_total'],  # Nombre total sur l'axe x
-                text=df_type['nombre_total'],  # Ajout du texte sur les barres
+                x=df_type['pourcentage'],  # Pourcentage sur l'axe x
+                text=df_type['pourcentage'].round(2).astype(str) + '%',  # Ajout du texte en pourcentages sur les barres
                 textposition='auto',  # Position automatique du texte
                 orientation='h'  # Barres horizontales
             ))
 
+        # Mise à jour du layout du bar chart empilé
         fig_bar.update_layout(
             barmode='stack',  # Empiler les barres
-            title='Répartition des types de véhicules par zone',
-            xaxis_title='Nombre de véhicules',
+            title='Répartition des types de véhicules par zone (en %)',
+            xaxis_title='Pourcentage de véhicules',
             yaxis_title='Zone',
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             legend=dict(title="Type de Véhicule"),
             margin=dict(l=50, r=50, t=100, b=50),
-            yaxis=dict(autorange="reversed")
+            yaxis=dict(autorange="reversed"),
+            xaxis=dict(range=[0, 100])  # Plage de l'axe x de 0 à 100 %
         )
 
         components.append(dcc.Graph(id='vehicules-bar-chart', figure=fig_bar, config={
@@ -200,7 +212,7 @@ def generate_graph_vehicules(noms_zones=None):
     # Retourner le Div contenant le titre et le graphique
     return html.Div([
         html.Div([
-            html.I(className='fas fa-chart-pie', style={'margin-right': '3rem', 'font-size': '1.5rem'}),
+            html.I(className='fas fa-chart-pie', style={'margin-right': '1rem', 'font-size': '1.5rem'}),
             html.H3("Répartition des Véhicules", style={'display': 'inline-block', 'textAlign': 'center', 'margin': 0},
                     id="title-Repartition-Vehicules")
         ], className='custom-div'),

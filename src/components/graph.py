@@ -11,9 +11,8 @@ def graph(app: Dash):
 
         ]),
         dcc.Store(id='clicked-zones', data=[]),
-    ], style={
-        'height': '90vh',  # Ajustez la hauteur selon vos besoins
-        'overflow-y': 'auto',  # Active le défilement vertical
-    })
+    ],
+    className='scroll-style'
+    ),
 
 
