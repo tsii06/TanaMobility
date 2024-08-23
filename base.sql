@@ -1,3 +1,6 @@
+CREATE database mobilite;
+/c mobilite;
+
 CREATE TABLE zones (
     id SERIAL PRIMARY KEY,
     nom VARCHAR(255) NOT NULL,  -- Nom de la zone géographique
