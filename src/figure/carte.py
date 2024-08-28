@@ -1,8 +1,9 @@
 # src/map_creation.py
 import geopandas as gpd
 import plotly.graph_objs as go
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
-from src.data.traitement import get_congestion_point
 
 
 def create_density_map(density, gdf_merged):
@@ -11,7 +12,7 @@ def create_density_map(density, gdf_merged):
         geojson=density,
         locations=gdf_merged['identifiant_commune'],
         z=gdf_merged['population_totale'],
-        colorscale='Reds',
+        colorscale='YlOrRd',
         marker_opacity=0.6,
         marker_line_width=1,
         featureidkey='properties.identifiant_commune',
@@ -21,8 +22,9 @@ def create_density_map(density, gdf_merged):
         showscale=False
     )
 
-def create_revenue_map(density, df):
+def create_revenue_map(density,df):
     """Crée une carte choroplèthe pour le revenu médian."""
+
     return go.Choroplethmapbox(
         geojson=density,
         locations=df['ensemble_concat'],
@@ -53,43 +55,22 @@ def create_default_map(gdf_geojson):
         showscale=False
     )
 
-def create_route():
-    # Charger le fichier GeoJSON
-    gdf = gpd.read_file(r"data/Antananarivo_voiries_primaires-secondaires-tertiaire.geojson")
-
-    # Filtrer les routes par type (primary, secondary, tertiary)
-    gdf_filtered = gdf[gdf['highway'].isin(['primary', 'secondary', 'tertiary'])]
-
-    # Reprojection en EPSG:3857 pour un calcul correct du centroid
-    gdf_filtered = gdf_filtered.to_crs(epsg=3857)
-
-    # Reprojection en EPSG:4326 pour l'affichage correct
-    gdf_filtered = gdf_filtered.to_crs(epsg=4326)
-
-    # Extraire les coordonnées des lignes
-    lats, lons = [], []
-    for geom in gdf_filtered.geometry:
-        if geom.geom_type == 'MultiLineString':
-            for line in geom.geoms:
-                lons.extend([coord[0] for coord in line.coords] + [None])
-                lats.extend([coord[1] for coord in line.coords] + [None])
-        elif geom.geom_type == 'LineString':
-            lons.extend([coord[0] for coord in geom.coords] + [None])
-            lats.extend([coord[1] for coord in geom.coords] + [None])
-
-    # Créer une trace pour afficher toutes les routes avec la même couleur et la même largeur
+def create_route(lats, lons):
     return go.Scattermapbox(
         lat=lats,
         lon=lons,
         mode='lines',
-        line=dict(width=3, color='rgba(128, 128, 128, 0.8)'),
+        line=dict(width=1.5, color='#4682B4'),
         name='Routes',
         hoverinfo='skip'
     )
 
-def create_traffic_markers():
+
+
+
+def create_traffic_markers(df):
     # Créer une trace pour les marqueurs de trafic
-    df = get_congestion_point()
+
     marker_trace = go.Scattermapbox(
         lat=df['centroid'].apply(lambda point: point.y),  # Latitude
         lon=df['centroid'].apply(lambda point: point.x),  # Longitude
@@ -97,7 +78,7 @@ def create_traffic_markers():
         marker=dict(
             size=20,  # Ajuster la taille en fonction du volume
             color=df['total_traffic_volume'],       # Couleur en fonction du volume
-            colorscale='YlOrRd',                    # Echelle de couleurs (jaune à rouge)
+            colorscale='Viridis',                    # Echelle de couleurs (jaune à rouge)
             cmin=df['total_traffic_volume'].min(),
             cmax=df['total_traffic_volume'].max(),
             showscale=False
@@ -105,14 +86,18 @@ def create_traffic_markers():
 
         text=df['total_traffic_volume'],
         name='Congestion',
-        hoverinfo='skip'
+        hoverinfo='text',  # Afficher uniquement le texte dans le survol
+        hovertext=df.apply(
+            lambda
+                row: f"Volume de trafic: {row['total_traffic_volume']}<br>Latitude: {row['centroid'].y:.6f}<br>Longitude: {row['centroid'].x:.6f}",
+            axis=1
+        )
 
     )
     return marker_trace
 
 
-def create_traffic_density_map():
-    df = get_congestion_point()
+def create_traffic_density_map(df):
 
     # Assurez-vous que les coordonnées sont bien des flottants
     df['lat'] = df['centroid'].apply(lambda point: point.y if point else None)
@@ -131,31 +116,35 @@ def create_traffic_density_map():
         zmin=df['total_traffic_volume'].min(),
         zmax=df['total_traffic_volume'].max(),
         opacity=0.9,
-        showscale=False
+        showscale=False,
+        hoverinfo='skip'
     )
-    # Configurer la carte
 
+def load_and_prepare_traffic_data(geojson_path, traffic_data_function):
 
-def create_route_with_traffic():
-    # Charger le fichier GeoJSON
-    gdf = gpd.read_file(r"data/Antananarivo_voiries_primaires-secondaires-tertiaire.geojson")
+    # Charger les données géographiques
+    gdf = gpd.read_file(geojson_path)
 
-    # Charger les volumes de trafic depuis une autre source (par exemple, une base de données ou un CSV)
-    df_traffic = get_congestion_point()  # Cette fonction doit retourner un DataFrame avec les volumes de trafic
+    # Charger les données de trafic
+    df_traffic = traffic_data_function()  # Cette fonction doit retourner un DataFrame avec les volumes de trafic
     df_traffic['id_osm'] = df_traffic['id_osm'].astype('int32')  # Assurez-vous que les types sont cohérents
-    # Filtrer les routes par type (primary, secondary, tertiary)
+
+    # Filtrer les routes principales, secondaires et tertiaires
     gdf_filtered = gdf[gdf['highway'].isin(['primary', 'secondary', 'tertiary'])]
 
-    # Reprojection en EPSG:3857 pour un calcul correct des coordonnées
+    # Convertir en système de coordonnées approprié
     gdf_filtered = gdf_filtered.to_crs(epsg=3857)
-
-    # Reprojection en EPSG:4326 pour l'affichage correct
     gdf_filtered = gdf_filtered.to_crs(epsg=4326)
 
-    # Jointure des données de trafic avec les données géométriques
-    gdf_filtered = gdf_filtered.merge(df_traffic[['id_osm', 'total_traffic_volume']], left_on='osm_id', right_on='id_osm', how='left')
+    # Fusionner les données géographiques avec les volumes de trafic
+    gdf_filtered = gdf_filtered.merge(df_traffic[['id_osm', 'total_traffic_volume']], left_on='osm_id',
+                                      right_on='id_osm', how='left')
+
+    # Remplir les valeurs manquantes par 0 pour les volumes de trafic
     gdf_filtered['total_traffic_volume'] = gdf_filtered['total_traffic_volume'].fillna(0)
-    # Extraire les coordonnées des lignes et ajuster les largeurs/couleurs en fonction du volume de trafic
+
+    return gdf_filtered
+def create_route_with_traffic(gdf_filtered):
     traces = []
     for _, row in gdf_filtered.iterrows():
         lats, lons = [], []
@@ -169,6 +158,10 @@ def create_route_with_traffic():
             lats.extend([coord[1] for coord in geom.coords] + [None])
 
         if row['total_traffic_volume'] > 0:
+            hover_text = (
+                f"Route ID: {row['osm_id']}<br>"
+                f"Volume de trafic: {row['total_traffic_volume']}"
+            )
             traces.append(go.Scattermapbox(
                 lat=lats,
                 lon=lons,
@@ -178,9 +171,51 @@ def create_route_with_traffic():
                     color='blue'  # Vous pouvez ajuster la couleur ici ou ajouter une échelle de couleurs
                 ),
                 opacity=min(row['total_traffic_volume'] / 1000, 1),  # Ajuster l'opacité au niveau de la trace
-                hoverinfo='skip',
+                hoverinfo='text',
+                hovertext=hover_text,
                 name=row['osm_id']
             ))
 
     # Créer la figure
+    return traces
+
+
+def create_contour_map(gdf_merged):
+    # Obtenir la population minimale et maximale pour normaliser les couleurs
+    min_pop = gdf_merged['population_totale'].min()
+    max_pop = gdf_merged['population_totale'].max()
+
+    # Normaliser les valeurs de population pour correspondre à une échelle de couleurs
+    norm = mcolors.Normalize(vmin=min_pop, vmax=max_pop)
+    cmap = cm.get_cmap('Blues')  # Utiliser une palette de couleurs de matplotlib
+
+    traces = []
+
+    # Parcourir chaque géométrie pour créer des traces de contours colorés
+    for _, row in gdf_merged.iterrows():
+        geometry = row['geometry']
+        pop_value = row['population_totale']
+
+        # Convertir la valeur de population en une couleur sur la palette
+        color = mcolors.to_hex(cmap(norm(pop_value)))
+
+        # Utiliser `.geoms` pour obtenir chaque Polygone du MultiPolygon
+        for poly in geometry.geoms:
+            x, y = poly.exterior.coords.xy  # Utiliser l'extérieur pour obtenir le contour du Polygone
+            lon_lines = list(x)
+            lat_lines = list(y)
+
+            # Créer une trace Scattermapbox pour chaque Polygon dans le MultiPolygon
+            contour_trace = go.Scattermapbox(
+                lon=lon_lines,
+                lat=lat_lines,
+                mode='lines',
+                line=dict(width=3, color=color),  # Définir la couleur et l'épaisseur des contours
+                hoverinfo='text',
+                hovertext=f"ID Commune: {row['identifiant_commune']}<br>Population: {pop_value}<br>Type: MultiPolygon"
+            )
+
+            # Ajouter la trace à la liste des traces
+            traces.append(contour_trace)
+
     return traces

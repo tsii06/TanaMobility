@@ -1,16 +1,12 @@
-from dash import html
+from dash import dcc, Dash, html
+import dash_bootstrap_components as dbc
 
-from src.figure.graphique import generate_graph_deplacement, generate_graph_vehicules, generate_sankey_diagram
+from src.components.selection.selection_header import create_header
+def detail_zone():
+    return dbc.Container([
+        html.Div(create_header()),
+        dcc.Store(id='selected-section', data='DESCRIPTION DU TERRITOIRE'),  # Stocker la section sélectionnée
+        html.Div(id='dynamic-content'),  # Conteneur pour le contenu dynamique
+    ], fluid=True, className="container-custom")
 
-
-def detail_zone(zone):
-    zone = [zone]
-    return html.Div([
-        html.Div([
-            html.H3(f"Details for {zone}"),
-            generate_graph_deplacement(zone),
-            generate_graph_vehicules(zone),
-            generate_sankey_diagram(zone)
-        ])
-    ])
 

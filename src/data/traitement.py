@@ -165,7 +165,6 @@ def loadRevenuCarte():
         gdf_merged['taux_pauvrete'] = gdf_merged['taux_pauvrete'].fillna(median_pauvrete)
 
         session.close()
-        print('dklsd',gdf_merged.shape[0])
         return gdf_merged
 
     except Exception as e:
@@ -194,7 +193,6 @@ def get_nombre_vehicules_par_zone(noms_zones=None):
         # Exécuter la requête et transformer les résultats en DataFrame
         result = session.execute(query)
         df = pd.DataFrame(result.fetchall(), columns=result.keys())
-        print(df)
         return df
 
     finally:
@@ -234,14 +232,14 @@ def get_pivoted_df():
 def join_centroids_and_pivoted_data():
     # Obtenir les données pivotées
     df_pivoted = get_pivoted_df()
-    print(df_pivoted.shape[0])
+    # print(df_pivoted.shape[0])
 
     # Réinitialiser l'index pour convertir 'zone_nom' en une colonne
     df_pivoted = df_pivoted.reset_index()
 
     # Charger et calculer les centroïdes
     df_centroids = calculate_centroids_by_zone()
-    print(df_centroids.shape[0])
+    # print(df_centroids.shape[0])
 
     # Convertir les colonnes de jointure en minuscules et s'assurer qu'elles sont de type chaîne de caractères
     df_centroids['ensemble_concat'] = df_centroids['ensemble_concat'].astype(str).str.lower()
@@ -317,13 +315,10 @@ def get_congestion_point():
 
         # Jointure des centroides avec le DataFrame `congestion`
         df = df.merge(gdf_centroids, left_on='id_osm', right_on='osm_id', how='left')
-        print(df.shape[0])
+        # print(df.shape[0])
 
         return df
 
     except Exception as e:
         print(f"Erreur lors de l'accès à la vue ou au GeoJSON : {e}")
         return None
-def get_zone_coordinate(zone):
-    zone_coordinate = 0
-    return zone_coordinate

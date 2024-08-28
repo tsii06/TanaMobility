@@ -1,58 +1,84 @@
 import numpy as np
-from dash import dcc,html,dash_table
+from dash import dcc, html, dash_table
 import pandas as pd
 import plotly.graph_objects as go
-from src.data.traitement import loadPopulationCarte, load_data_population_bar_chart, get_volume_deplacements, \
-    get_nombre_vehicules_par_zone, get_matrice_od_data
+import dash_bootstrap_components as dbc
+
+from src.data.traitement_data_spatiale import loadPopulationCarte
+from src.data.traitement_data_visualisation import get_volume_deplacements, \
+    get_nombre_vehicules_par_zone, get_od_count, get_population
 
 # Chargement des données
 gdf_merged = loadPopulationCarte()
+
+# Ce fonction permet de genere un graphique de densite
 def generate_graph_density():
     components = []
-
-    # Charger les données pour le bar chart
-    df_population = load_data_population_bar_chart()
-
-    # Créer le bar chart avec des styles supplémentaires
+    df_population = get_population()
     fig_bar = go.Figure(data=[
         go.Bar(
             name='Hommes',
             x=df_population['tranche'],
             y=df_population['population_masculine_totale'],
             marker_color='blue',
-            text=df_population['population_masculine_totale'],  # Ajout du texte sur les barres
-            textposition='auto'  # Position automatique du texte
+            text=df_population['population_masculine_totale'],
+            textposition='auto'
         ),
         go.Bar(
             name='Femmes',
             x=df_population['tranche'],
             y=df_population['population_feminine_totale'],
             marker_color='pink',
-            text=df_population['population_feminine_totale'],  # Ajout du texte sur les barres
-            textposition='auto'  # Position automatique du texte
+            text=df_population['population_feminine_totale'],
+            textposition='auto'
         )
     ])
     fig_bar.update_layout(
-    barmode='group',
-    title='Distribution de la population masculine et féminine par tranche d\'âge',
-    xaxis_title='Tranche d\'âge',
-    yaxis_title='Population',
-    plot_bgcolor='rgba(0,0,0,0)',
-    paper_bgcolor='rgba(0,0,0,0)',
-    legend=dict(title="Légende"),
-    margin=dict(l=50, r=50, t=100, b=50)
+        barmode='group',
+        title='Distribution de la population masculine et féminine par tranche d\'âge',
+        xaxis_title='Tranche d\'âge',
+        yaxis_title='Population',
+        plot_bgcolor='rgba(0,0,0,0)',
+        paper_bgcolor='rgba(0,0,0,0)',
+        legend=dict(title="Légende"),
+        margin=dict(l=50, r=50, t=100, b=50)
     )
-    components.append(dcc.Graph(id='graph-densite',figure=fig_bar,config={
-            'displayModeBar': True,
-            'displaylogo': False,
-            'modeBarButtonsToRemove': ['toImage', 'zoom2d', 'pan2d'],
-            'scrollZoom': False
-        }))
+    components.append(dcc.Graph(id='graph-densite', figure=fig_bar, config={
+        'displayModeBar': True,
+        'displaylogo': False,
+        'modeBarButtonsToRemove': ['toImage', 'zoom2d', 'pan2d'],
+        'scrollZoom': False
+    }))
 
     return html.Div([
         html.Div([
-            html.I(className='fas fa-chart-pie', style={'margin-right': '3rem', 'font-size': '1.5rem'}),
-            html.H3("Densité de population", style={'display': 'inline-block', 'textAlign': 'center', 'margin': 0}, id="title-Densité de population")
+            html.I(className='fas fa-chart-pie', style={'margin-right': '1rem', 'font-size': '1.5rem'}),
+            html.H3("Densité de population", style={'display': 'inline-block', 'textAlign': 'center', 'margin': 0},
+                    id="title-Densité de population"),
+            # Ajout de l'icône d'information pour le Popover
+            html.Span(
+                html.I(className='fas fa-info-circle', style={'margin-left': '0.5rem', 'font-size': '1rem'}),
+                id='info-icon-population',  # ID correspondant pour le Popover
+                style={'cursor': 'pointer'}
+            ),
+            # Ajout du Popover avec l'ID correspondant à l'icône d'information
+            dbc.Popover(
+                [
+                    dbc.PopoverHeader("Détails sur la Visualisation"),
+                    dbc.PopoverBody([
+                        "Cette visualisation montre la distribution de la population masculine et féminine par tranche d'âge.",
+                        html.Br(),
+                        "Source de données : AGETIPA.",
+                        html.Br(),
+                        html.A("Cliquez ici pour plus de détails", href="https://www.exemple.com/details_population", target="_blank", style={'color': '#007bff'})
+                    ])
+                ],
+                id="popover-population",  # ID unique pour le Popover
+                target='info-icon-population',  # Cible l'icône d'information
+                trigger='hover',  # Affiche le popover au survol
+                placement='right',
+                style={'font-size': '0.8rem', 'max-width': '200px'}
+            )
         ], className='custom-div'),
         *components
     ])
@@ -60,11 +86,8 @@ def generate_graph_density():
 
 def generate_graph_deplacement(noms_zones=None):
     components = []
-
-    # Charger les données pour le bar chart en utilisant la fonction `get_volume_deplacements`
     df_deplacement = get_volume_deplacements(noms_zones)
 
-    # Créer le bar chart avec des barres empilées
     fig_bar = go.Figure(data=[
         go.Bar(
             name='Productions',
@@ -98,7 +121,6 @@ def generate_graph_deplacement(noms_zones=None):
     # Mise à jour du layout du graphique
     fig_bar.update_layout(
         barmode='stack',  # Les barres sont empilées par zone
-        title='Zones le plus de volume de deplaacement',
         xaxis_title='Volume de déplacements',  # Volume sur l'axe x
         yaxis_title='Zone',  # Nom des zones sur l'axe y
         plot_bgcolor='rgba(0,0,0,0)',
@@ -109,7 +131,7 @@ def generate_graph_deplacement(noms_zones=None):
     )
 
     # Ajout du graphique aux composants
-    components.append(dcc.Graph(id='deplacement-graph',figure=fig_bar, config={
+    components.append(dcc.Graph(id='deplacement-graph', figure=fig_bar, config={
         'displayModeBar': True,
         'displaylogo': False,
         'modeBarButtonsToRemove': ['toImage', 'zoom2d', 'pan2d'],
@@ -121,10 +143,34 @@ def generate_graph_deplacement(noms_zones=None):
         html.Div([
             html.I(className='fas fa-chart-bar', style={'margin-right': '3rem', 'font-size': '1.5rem'}),
             html.H3("Volume des Déplacements", style={'display': 'inline-block', 'textAlign': 'center', 'margin': 0},
-                    id="title-Volume de Déplacements")
+                    id="title-Volume de Déplacements"),
+            html.Span(
+                html.I(className='fas fa-info-circle', style={'margin-left': '0.5rem', 'font-size': '1rem'}),
+                id='info-icon-deplacement',  # ID correspondant pour le Popover
+                style={'cursor': 'pointer'}
+            ),
+            # Ajout du Popover avec l'ID correspondant à l'icône d'information
+            dbc.Popover(
+                [
+                    dbc.PopoverHeader("Détails sur la Visualisation"),
+                    dbc.PopoverBody([
+                        "Cette visualisation montre le volume de déplacements par zone.",
+                        html.Br(),
+                        "Source de données : AGETIPA.",
+                        html.Br(),
+                        html.A("Cliquez ici pour plus de détails", href="https://www.exemple.com/details_deplacements", target="_blank", style={'color': '#007bff'})
+                    ])
+                ],
+                id="popover-deplacement",  # ID unique pour le Popover
+                target='info-icon-deplacement',  # Cible l'icône d'information
+                trigger='hover',  # Affiche le popover au survol
+                placement='right',
+                style={'font-size': '0.8rem', 'max-width': '200px'}
+            )
         ], className='custom-div'),
         *components
     ])
+
 
 def generate_graph_vehicules(noms_zones=None):
     df_vehicules = get_nombre_vehicules_par_zone(noms_zones)
@@ -134,12 +180,12 @@ def generate_graph_vehicules(noms_zones=None):
     # Si une seule zone est sélectionnée, on crée un pie chart pour cette zone
     if noms_zones and len(noms_zones) == 1:
         zone_nom = noms_zones[0]
-        zone_nom = zone_nom.lower()  # ou .upper() si vous préférez
+        zone_nom = zone_nom.lower()  # Transformation du nom de la zone en minuscule (ou majuscule si vous préférez)
 
+        # Filtrer les données pour la zone sélectionnée
         df_zone = df_vehicules[df_vehicules['zone_nom'].str.lower() == zone_nom]
+        df_zone = df_zone[df_zone['nombre_total'] > 0]  # Exclure les valeurs nulles ou égales à 0
 
-        df_zone = df_zone[df_zone['nombre_total'] > 0]
-        print(f"Données filtrées : {df_zone}")
         fig_pie = go.Figure(data=[
             go.Pie(
                 labels=df_zone['type_vehicule'],
@@ -149,9 +195,8 @@ def generate_graph_vehicules(noms_zones=None):
             )
         ])
 
-        # Mise à jour du layout du graphique
         fig_pie.update_layout(
-            title=f"Répartition des types de véhicules dans la zone {zone_nom}",
+            title=f"Répartition des types de véhicules dans la zone {zone_nom.capitalize()}",
             margin=dict(l=50, r=50, t=100, b=50)
         )
 
@@ -163,8 +208,13 @@ def generate_graph_vehicules(noms_zones=None):
         }))
 
     else:
-        # Si plusieurs zones sont sélectionnées, on peut faire un bar chart empilé
         fig_bar = go.Figure()
+
+        # Calculer les pourcentages pour chaque type de véhicule par zone
+        df_totals = df_vehicules.groupby('zone_nom')['nombre_total'].sum().reset_index()
+        df_totals.rename(columns={'nombre_total': 'total_vehicules'}, inplace=True)
+        df_vehicules = df_vehicules.merge(df_totals, on='zone_nom')
+        df_vehicules['pourcentage'] = df_vehicules['nombre_total'] / df_vehicules['total_vehicules'] * 100
 
         for type_vehicule in df_vehicules['type_vehicule'].unique():
             df_type = df_vehicules[df_vehicules['type_vehicule'] == type_vehicule]
@@ -172,22 +222,24 @@ def generate_graph_vehicules(noms_zones=None):
             fig_bar.add_trace(go.Bar(
                 name=type_vehicule,
                 y=df_type['zone_nom'],  # Nom des zones sur l'axe y
-                x=df_type['nombre_total'],  # Nombre total sur l'axe x
-                text=df_type['nombre_total'],  # Ajout du texte sur les barres
+                x=df_type['pourcentage'],  # Pourcentage sur l'axe x
+                text=df_type['pourcentage'].round(2).astype(str) + '%',  # Ajout du texte en pourcentages sur les barres
                 textposition='auto',  # Position automatique du texte
                 orientation='h'  # Barres horizontales
             ))
 
+        # Mise à jour du layout du bar chart empilé
         fig_bar.update_layout(
             barmode='stack',  # Empiler les barres
-            title='Répartition des types de véhicules par zone',
-            xaxis_title='Nombre de véhicules',
+            title='Répartition des types de véhicules par zone (en %)',
+            xaxis_title='Pourcentage de véhicules',
             yaxis_title='Zone',
             plot_bgcolor='rgba(0,0,0,0)',
             paper_bgcolor='rgba(0,0,0,0)',
             legend=dict(title="Type de Véhicule"),
             margin=dict(l=50, r=50, t=100, b=50),
-            yaxis=dict(autorange="reversed")
+            yaxis=dict(autorange="reversed"),
+            xaxis=dict(range=[0, 100])  # Plage de l'axe x de 0 à 100 %
         )
 
         components.append(dcc.Graph(id='vehicules-bar-chart', figure=fig_bar, config={
@@ -200,17 +252,39 @@ def generate_graph_vehicules(noms_zones=None):
     # Retourner le Div contenant le titre et le graphique
     return html.Div([
         html.Div([
-            html.I(className='fas fa-chart-pie', style={'margin-right': '3rem', 'font-size': '1.5rem'}),
+            html.I(className='fas fa-chart-pie', style={'margin-right': '1rem', 'font-size': '1.5rem'}),
             html.H3("Répartition des Véhicules", style={'display': 'inline-block', 'textAlign': 'center', 'margin': 0},
-                    id="title-Repartition-Vehicules")
+                    id="title-Repartition-Vehicules"),
+            html.Span(
+                html.I(className='fas fa-info-circle', style={'margin-left': '0.5rem', 'font-size': '1rem'}),
+                id='info-icon-repartition',  # ID correspondant pour le Popover
+                style={'cursor': 'pointer'}
+            ),
+            # Ajout du Popover avec l'ID correspondant à l'icône d'information
+            dbc.Popover(
+                [
+                    dbc.PopoverHeader("Détails sur la Visualisation"),
+                    dbc.PopoverBody([
+                        "Cette visualisation montre la répartition des types de véhicules par zone.",
+                        html.Br(),
+                        "Source de données : AGETIPA.",
+                        html.Br(),
+                        html.A("Cliquez ici pour plus de détails", href="https://www.exemple.com/details_vehicules", target="_blank", style={'color': '#007bff'})
+                    ])
+                ],
+                id="popover-repartition",  # ID unique pour le Popover
+                target='info-icon-repartition',  # Cible l'icône d'information
+                trigger='hover',  # Affiche le popover au survol
+                placement='right',
+                style={'font-size': '0.8rem', 'max-width': '200px'}
+            )
         ], className='custom-div'),
         *components
     ])
 
 
-# Fonction pour générer le diagramme de Sankey
 def generate_sankey_diagram(noms_zones=None):
-    df_matrice = get_matrice_od_data(noms_zones)
+    df_matrice = get_od_count(noms_zones)
 
     # Créer une liste unique des zones pour les nœuds
     zones = list(pd.concat([df_matrice['nom_origine'], df_matrice['nom_destination']]).unique())
@@ -218,10 +292,9 @@ def generate_sankey_diagram(noms_zones=None):
     # Créer des indices pour les zones
     zone_indices = {zone: i for i, zone in enumerate(zones)}
 
-    # Créer les sources, cibles et valeurs pour le diagramme de Sankey
     sources = [zone_indices[zone] for zone in df_matrice['nom_origine']]
     targets = [zone_indices[zone] for zone in df_matrice['nom_destination']]
-    values = df_matrice['nombre']
+    values = df_matrice['somme_totale_par_origine']
 
     # Créer les couleurs pour les nœuds
     node_colors = ['#1f77b4' if i < len(df_matrice['nom_origine'].unique()) else '#ff7f0e' for i in range(len(zones))]
@@ -253,69 +326,32 @@ def generate_sankey_diagram(noms_zones=None):
         html.Div([
             html.I(className='fas fa-chart-line', style={'margin-right': '3rem', 'font-size': '1.5rem'}),
             html.H3("Flux de Déplacements entre Zones", style={'display': 'inline-block', 'textAlign': 'center', 'margin': 0},
-                    id="title-Flux-Deplacements")
+                    id="title-Flux-Deplacements"),
+            html.Span(
+                html.I(className='fas fa-info-circle', style={'margin-left': '0.5rem', 'font-size': '1rem'}),
+                id='info-icon-matrice',  # ID correspondant pour le Popover
+                style={'cursor': 'pointer'}
+            ),
+            # Ajout du Popover avec l'ID correspondant à l'icône d'information
+            dbc.Popover(
+                [
+                    dbc.PopoverHeader("Détails sur la Visualisation"),
+                    dbc.PopoverBody([
+                        "Cette visualisation montre les flux de déplacements entre les zones.",
+                        html.Br(),
+                        "Source de données : AGETIPA.",
+                        html.Br(),
+                        html.A("Cliquez ici pour plus de détails", href="https://www.exemple.com/details_sankey", target="_blank", style={'color': '#007bff'})
+                    ])
+                ],
+                id="popover-matrice",  # ID unique pour le Popover
+                target='info-icon-matrice',  # Cible l'icône d'information
+                trigger='hover',  # Affiche le popover au survol
+                placement='right',
+                style={'font-size': '0.8rem', 'max-width': '200px'}
+            )
         ], className='custom-div'),
         dcc.Graph(id='sankey-diagram', figure=fig_sankey, config={
-            'displayModeBar': True,
-            'displaylogo': False,
-            'modeBarButtonsToRemove': ['toImage', 'zoom2d', 'pan2d'],
-            'scrollZoom': False
-        })
-    ])
-
-
-def generate_chord_diagram(noms_zones=None):
-    df_matrice = get_matrice_od_data(noms_zones)
-
-    # Liste unique des zones pour les nœuds
-    zones = list(pd.concat([df_matrice['nom_origine'], df_matrice['nom_destination']]).unique())
-
-    # Créer une matrice de flux
-    matrix_size = len(zones)
-    matrix = np.zeros((matrix_size, matrix_size))
-
-    zone_indices = {zone: i for i, zone in enumerate(zones)}
-
-    # Remplir la matrice avec les valeurs de déplacement
-    for _, row in df_matrice.iterrows():
-        i = zone_indices[row['nom_origine']]
-        j = zone_indices[row['nom_destination']]
-        matrix[i, j] = row['nombre']
-
-    # Création de liens (chords) entre les zones
-    traces = []
-    for i in range(matrix_size):
-        for j in range(matrix_size):
-            if matrix[i, j] > 0:
-                trace = go.Scatterpolar(
-                    r=[matrix[i, j], matrix[i, j], 0],
-                    theta=[zones[i], zones[j], zones[i]],
-                    fill='toself',
-                    name=f'{zones[i]} → {zones[j]}',
-                    hoverinfo='text',
-                    text=f'Flux: {matrix[i, j]}'
-                )
-                traces.append(trace)
-
-    fig = go.Figure(traces)
-
-    fig.update_layout(
-        title="Diagramme de Cordes des Flux entre Zones",
-        showlegend=False,
-        polar=dict(
-            radialaxis=dict(visible=True, range=[0, matrix.max()]),
-        ),
-    )
-
-    # Retourner le Div contenant le titre et le graphique
-    return html.Div([
-        html.Div([
-            html.I(className='fas fa-circle-notch', style={'margin-right': '3rem', 'font-size': '1.5rem'}),
-            html.H3("Flux de Déplacements entre Zones",
-                    style={'display': 'inline-block', 'textAlign': 'center', 'margin': 0},
-                    id="title-Flux-Deplacements-Chord")
-        ], className='custom-div'),
-        dcc.Graph(id='chord-diagram', figure=fig, config={
             'displayModeBar': True,
             'displaylogo': False,
             'modeBarButtonsToRemove': ['toImage', 'zoom2d', 'pan2d'],

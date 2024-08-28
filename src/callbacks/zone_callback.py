@@ -9,12 +9,8 @@ def register_double_click(app):
     )
     def on_double_click(click_data, state_click_data):
         if click_data:
-            # Affiche les données du clic dans la console
-            print(click_data)
-
             # Extraire le nom de la zone
             zone = click_data['points'][0]['location']
-            print(f"Nom de la zone : {zone}")
 
             # Mettre à jour l'URL pour inclure l'identifiant de la zone
             return f"/details/{zone}"

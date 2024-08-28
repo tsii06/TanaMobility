@@ -1,78 +1,65 @@
 from dash.dependencies import Input, Output
 from src.figure.graphique import generate_graph_density, generate_graph_deplacement, generate_graph_vehicules, \
-    generate_sankey_diagram, generate_chord_diagram
-from dash import html, dcc
+    generate_sankey_diagram
+from dash import html
 
 
 def register_callbacks(app):
     @app.callback(
-        [Output('selected-thematiques', 'data'),
-         Output('selected-carto', 'data'),
+        [Output('selected-carto', 'data'),
+         Output('selected-thematiques', 'data'),
          Output('selected-route', 'data')],
-        [Input('checklist-thematiques', 'value'),
-         Input('checklist', 'value'),
+        [Input('checklist-carto', 'value'),
+         Input('checklist-thematiques', 'value'),
          Input('checklist-route', 'value')]
     )
-    def update_selected(selected_values, selected_carto,selected_route):
-        return selected_values, selected_carto,selected_route
+    def update_selected(selected_values, selected_carto, selected_route):
+        # Ajouter des valeurs par défaut si les valeurs sont None
+        selected_values = selected_values or []
+        selected_carto = selected_carto or []
+        selected_route = selected_route or []
+
+        return selected_values, selected_carto, selected_route
 
     @app.callback(
-        [Output('densite', 'children'),
-         Output('typologie', 'children'),
-         Output('finances', 'children'),
-         Output('matrice', 'children')],
-        [Input('selected-carto', 'data'),
-         Input('selected-thematiques', 'data'),
-         Input('clicked-zones', 'data')
-    ]
+        Output('densite', 'children'),
+        [Input('selected-thematiques', 'data')]
     )
-    def update_graphs(selected_carto, selected_thematiques, clicked_zones):
-        if not selected_thematiques or not selected_carto:
-            return html.Div(), html.Div(), html.Div(), html.Div()
-
-        # Utiliser les zones cliquées dans les graphiques
-        if 'matrice' in selected_thematiques or 'matrice' in selected_carto:
-            matrice_od = generate_sankey_diagram(noms_zones=clicked_zones)
-        else:
-            matrice_od = html.Div()
-
-        if 'densite' in selected_thematiques or 'densite' in selected_carto:
-            densite_content = generate_graph_density()
-        else:
-            densite_content = html.Div()
-
-        if 'deplacement' in selected_thematiques or 'deplacement' in selected_carto:
-            distance_content = generate_graph_deplacement(noms_zones=clicked_zones)
-        else:
-            distance_content = html.Div()
-
-        if 'typologie' in selected_thematiques or 'typologie' in selected_carto:
-            typologie_content = generate_graph_vehicules(noms_zones=clicked_zones)
-        else:
-            typologie_content = html.Div()
-
-        return densite_content, typologie_content, matrice_od, distance_content
+    def update_density_graph(selected_thematiques):
+        # Vérifier si selected_thematiques n'est pas None
+        if selected_thematiques and 'densite' in selected_thematiques:
+            return generate_graph_density()
+        return html.Div()
 
     @app.callback(
-        Output('content', 'children'),
-        Input('checklist-thematiques', 'value'),
-        Input('checklist', 'value')
+        Output('typologie', 'children'),
+        [Input('selected-thematiques', 'data'),
+         Input('clicked-zones', 'data')]
     )
-    def update_graph(selected_thematique, selected_checklist):
-        # Créer un composant Graph en fonction de l'option sélectionnée
-        scroll_id = ''
-        if selected_thematique == 'densite':
-            scroll_id = 'graph-densite'
-        elif selected_thematique == 'revenu':
-            scroll_id = 'graph-revenu'
-        elif selected_checklist == 'deplacement':
-            scroll_id = 'deplacement-graph'
-        elif selected_checklist == 'typologie':
-            scroll_id = 'graph-typologie'
-        elif selected_checklist == 'matrice':
-            scroll_id = 'graph-taux-pauvrete'
+    def update_typology_graph(selected_thematiques, clicked_zones):
+        # Vérifier si selected_thematiques et clicked_zones ne sont pas None
+        if selected_thematiques and 'typologie' in selected_thematiques:
+            return generate_graph_vehicules(noms_zones=clicked_zones)
+        return html.Div()
 
-        if scroll_id:
-            return dcc.Location(id='scroll', href=f'#{scroll_id}', refresh=False)
+    @app.callback(
+        Output('matrice', 'children'),
+        [Input('selected-thematiques', 'data'),
+         Input('clicked-zones', 'data')]
+    )
+    def update_matrice_graph(selected_thematiques, clicked_zones):
+        # Vérifier si selected_thematiques et clicked_zones ne sont pas None
+        if selected_thematiques and 'matrice' in selected_thematiques:
+            return generate_sankey_diagram(noms_zones=clicked_zones)
+        return html.Div()
 
-        return dcc.Graph(id=scroll_id)
+    @app.callback(
+        Output('finances', 'children'),
+        [Input('selected-thematiques', 'data'),
+         Input('clicked-zones', 'data')]
+    )
+    def update_finances_graph(selected_thematiques, clicked_zones):
+        # Vérifier si selected_thematiques et clicked_zones ne sont pas None
+        if selected_thematiques and 'deplacement' in selected_thematiques:
+            return generate_graph_deplacement(noms_zones=clicked_zones)
+        return html.Div()
